@@ -63,7 +63,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   20.0
 );
-camera.position.set(0.0, 1.0, 5.0);
+camera.position.set(0.0, 1.5, 3.5);
 
 // camera controls
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -95,7 +95,7 @@ let isLoadingAnimations = false;
 
 // Define your animation files
 const animationFiles = {
-  idle: "/animations/idle.fbx",
+  idle: "/animations/idleFemale.fbx",
   sad: "/animations/sad.fbx",
   happy: "/animations/idle-happy.fbx",
   bow: "/animations/bow.fbx",
@@ -127,7 +127,7 @@ async function loadAllAnimations() {
   setupAnimationControls();
 
   // Play default animation
-  playAnimation("happy", true);
+  playAnimation("idle", true);
 }
 
 // Play a specific animation
@@ -256,16 +256,6 @@ loadVRM(defaultModelUrl);
 
 createEnvironment(scene);
 
-// Blinking state variables
-let nextBlinkTime = 0;
-let blinkStartTime = -1;
-let isBlinking = false;
-
-// Blinking parameters
-const BLINK_DURATION = 0.1; // Duration of a blink in seconds
-const MIN_BLINK_INTERVAL = 5.0; // Minimum time between blinks
-const MAX_BLINK_INTERVAL = 15.0; // Maximum time between blinks
-
 // animate
 const clock = new THREE.Clock();
 
@@ -342,3 +332,81 @@ function setupAnimationControls() {
 
   animFolder.open();
 }
+
+// GUI setup additions
+function setupExpressionControls() {
+  //const expressionFolder = gui.addFolder("Expressions");
+
+  // Blink controls
+  const blinkFolder = gui.addFolder("Blinking");
+  const blinkConfig = {
+    blinkInterval: 10.0,
+    doubleBlinkChance: 0.1,
+    blinkSpeed: 1.0,
+  };
+
+  blinkFolder.add(blinkConfig, "blinkInterval", 1, 30).onChange((value) => {
+    if (expressionController) {
+      expressionController.blinkController.setConfig({
+        minInterval: value / 2,
+        maxInterval: value,
+      });
+    }
+  });
+
+  blinkFolder
+    .add(blinkConfig, "doubleBlinkChance", 0, 0.5)
+    .onChange((value) => {
+      if (expressionController) {
+        expressionController.blinkController.setConfig({
+          doubleBlinkChance: value,
+        });
+      }
+    });
+
+  // Emotion controls
+  const emotionFolder = gui.addFolder("Emotions");
+  const emotions = ["happy", "angry", "sad", "relaxed", "surprised", "neutral"];
+
+  emotions.forEach((emotion) => {
+    emotionFolder.add(
+      {
+        [emotion]: () => {
+          if (expressionController) {
+            expressionController.emotionController.setEmotion(emotion, 1.0);
+          }
+        },
+      },
+      emotion
+    );
+  });
+
+  // Fun animations
+  const animFolder = gui.addFolder("Anim Expressions");
+  animFolder.add(
+    {
+      Surprise: () => {
+        if (expressionController) {
+          ExpressionAnimations.surprise(expressionController);
+        }
+      },
+    },
+    "Surprise"
+  );
+
+  animFolder.add(
+    {
+      Talk: () => {
+        if (expressionController) {
+          ExpressionAnimations.talking(expressionController, 3);
+        }
+      },
+    },
+    "Talk"
+  );
+
+  expressionFolder.open();
+}
+
+// Call this after loading animations
+setupExpressionControls();

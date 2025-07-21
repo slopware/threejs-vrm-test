@@ -207,9 +207,9 @@ class EmotionController {
     return emotions;
   }
 
-  clearEmotion() {
-    this.targetWeight = 0;
-  }
+  //   clearEmotion() {
+  //     this.targetWeight = 0;
+  //   }
 }
 
 // Utility functions for common animations
