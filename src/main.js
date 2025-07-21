@@ -7,6 +7,10 @@ import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { loadMixamoAnimation } from "./utils/loadMixamoAnimation.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 
+import {
+  ExpressionController,
+  ExpressionAnimations,
+} from "./ExpressionController.js";
 import { createEnvironment } from "./environment.js";
 
 class ArmSpaceController {
@@ -77,12 +81,13 @@ scene.add(light);
 
 const defaultModelUrl = "/miku.vrm";
 
-// gltf and vrm
+// controllers
 let currentVrm = undefined;
 let currentAnimationUrl = undefined;
 let currentMixer = undefined;
 let currentAction = undefined;
-let armSpaceController = undefined; // Initialize as undefined
+let armSpaceController = undefined;
+let expressionController = undefined;
 
 // Animation management
 const animations = new Map(); // Store loaded animation clips
@@ -203,6 +208,13 @@ function loadVRM(modelUrl) {
       // Create arm space controller AFTER currentVrm is set
       armSpaceController = new ArmSpaceController(currentVrm);
 
+      // Create expression controller
+      expressionController = new ExpressionController(currentVrm);
+      console.log(
+        "Available expressions:",
+        expressionController.getAvailableExpressions()
+      );
+
       // Load all animations after VRM is ready
       await loadAllAnimations();
 
@@ -269,36 +281,10 @@ function animate() {
   }
 
   if (currentVrm) {
-    // Handle blinking
-    if (!isBlinking && currentTime >= nextBlinkTime) {
-      // Start a blink
-      isBlinking = true;
-      blinkStartTime = currentTime;
-
-      // Schedule next blink at random interval
-      nextBlinkTime =
-        currentTime +
-        MIN_BLINK_INTERVAL +
-        Math.random() * (MAX_BLINK_INTERVAL - MIN_BLINK_INTERVAL);
+    // Update expressions (handles all blinking and emotions)
+    if (expressionController) {
+      expressionController.update(currentTime, deltaTime);
     }
-
-    let blinkValue = 0;
-
-    if (isBlinking) {
-      const blinkProgress = (currentTime - blinkStartTime) / BLINK_DURATION;
-
-      if (blinkProgress >= 1.0) {
-        // Blink finished
-        isBlinking = false;
-        blinkValue = 0;
-      } else {
-        // Smooth blink animation using sine curve
-        // Goes from 0 to 1 and back to 0
-        blinkValue = Math.sin(blinkProgress * Math.PI);
-      }
-    }
-
-    currentVrm.expressionManager.setValue("blink", blinkValue);
 
     // Apply arm space adjustment BEFORE VRM update but AFTER animation
     if (armSpaceController) {
