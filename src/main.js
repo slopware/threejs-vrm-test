@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
-import { loadMixamoAnimation } from "./loadMixamoAnimation.js";
+import { loadMixamoAnimation } from "./utils/loadMixamoAnimation.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 
 import { createEnvironment } from "./environment.js";
@@ -95,7 +95,6 @@ const animationFiles = {
   happy: "/animations/idle-happy.fbx",
   bow: "/animations/bow.fbx",
   bored: "/animations/bored.fbx",
-  dance: "/animations/dance.fbx",
   angry: "/animations/angry.fbx",
 };
 
