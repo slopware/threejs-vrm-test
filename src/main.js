@@ -7,6 +7,8 @@ import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { loadMixamoAnimation } from "./loadMixamoAnimation.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 
+import { createEnvironment } from "./environment.js";
+
 class ArmSpaceController {
   constructor(vrm) {
     this.vrm = vrm;
@@ -94,6 +96,7 @@ const animationFiles = {
   bow: "/animations/bow.fbx",
   bored: "/animations/bored.fbx",
   dance: "/animations/dance.fbx",
+  angry: "/animations/angry.fbx",
 };
 
 // Load all animations at startup
@@ -217,7 +220,7 @@ function loadVRM(modelUrl) {
       VRMUtils.rotateVRM0(vrm);
 
       console.log(vrm);
-      
+
       //set default arm space
       if (armSpaceController) {
         armSpaceController.setArmSpace(1.5);
@@ -239,6 +242,8 @@ function loadVRM(modelUrl) {
 }
 
 loadVRM(defaultModelUrl);
+
+createEnvironment(scene);
 
 // Blinking state variables
 let nextBlinkTime = 0;
