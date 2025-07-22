@@ -213,34 +213,34 @@ class EmotionController {
 }
 
 // Utility functions for common animations
-export const ExpressionAnimations = {
-  // Easing functions
-  easeInOut: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
-  easeOut: (t) => 1 - (1 - t) * (1 - t),
+// export const ExpressionAnimations = {
+//   // Easing functions
+//   easeInOut: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+//   easeOut: (t) => 1 - (1 - t) * (1 - t),
 
-  // Preset animations
-  surprise: (controller) => {
-    controller.setExpression("surprised", 1.0, {
-      duration: 0.2,
-      easing: ExpressionAnimations.easeOut,
-    });
-    setTimeout(() => {
-      controller.setExpression("surprised", 0, { duration: 0.5 });
-    }, 1000);
-  },
+//   // Preset animations
+//   surprise: (controller) => {
+//     controller.setExpression("surprised", 1.0, {
+//       duration: 0.2,
+//       easing: ExpressionAnimations.easeOut,
+//     });
+//     setTimeout(() => {
+//       controller.setExpression("surprised", 0, { duration: 0.5 });
+//     }, 1000);
+//   },
 
-  talking: (controller, duration = 2) => {
-    const startTime = performance.now() / 1000;
-    controller.activeExpressions.set("a", {
-      update: (currentTime) => {
-        const elapsed = currentTime - startTime;
-        if (elapsed > duration) {
-          controller.activeExpressions.delete("a");
-          return 0;
-        }
-        // Simulate talking with sine wave
-        return Math.abs(Math.sin(elapsed * 8)) * 0.3;
-      },
-    });
-  },
-};
+//   talking: (controller, duration = 2) => {
+//     const startTime = performance.now() / 1000;
+//     controller.activeExpressions.set("a", {
+//       update: (currentTime) => {
+//         const elapsed = currentTime - startTime;
+//         if (elapsed > duration) {
+//           controller.activeExpressions.delete("a");
+//           return 0;
+//         }
+//         // Simulate talking with sine wave
+//         return Math.abs(Math.sin(elapsed * 8)) * 0.3;
+//       },
+//     });
+//   },
+// };

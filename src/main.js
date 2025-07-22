@@ -7,10 +7,7 @@ import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { loadMixamoAnimation } from "./utils/loadMixamoAnimation.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 
-import {
-  ExpressionController,
-  ExpressionAnimations,
-} from "./ExpressionController.js";
+import { ExpressionController } from "./ExpressionController.js";
 import { createEnvironment } from "./environment.js";
 
 class ArmSpaceController {
@@ -309,7 +306,7 @@ gui
   .onChange((value) => {
     if (armSpaceController) {
       armSpaceController.setArmSpace(value);
-      console.log("Arm space set to:", value);
+      //console.log("Arm space set to:", value);
     }
   });
 
@@ -380,30 +377,6 @@ function setupExpressionControls() {
       emotion
     );
   });
-
-  // Fun animations
-  const animFolder = gui.addFolder("Anim Expressions");
-  animFolder.add(
-    {
-      Surprise: () => {
-        if (expressionController) {
-          ExpressionAnimations.surprise(expressionController);
-        }
-      },
-    },
-    "Surprise"
-  );
-
-  animFolder.add(
-    {
-      Talk: () => {
-        if (expressionController) {
-          ExpressionAnimations.talking(expressionController, 3);
-        }
-      },
-    },
-    "Talk"
-  );
 
   expressionFolder.open();
 }
