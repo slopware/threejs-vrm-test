@@ -1,9 +1,9 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
 export class ArmSpaceController {
-  constructor(vrm) {
+  constructor(vrm, defaultArmSpace = 0) {
     this.vrm = vrm;
-    this.armSpaceOffset = 0;
+    this.armSpaceOffset = defaultArmSpace;
   }
 
   setArmSpace(value) {

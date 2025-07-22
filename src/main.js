@@ -10,7 +10,7 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import { ExpressionController } from "./ExpressionController.js";
 import { createEnvironment } from "./environment.js";
 import { ArmSpaceController } from "./ArmSpaceController.js";
-
+import { LookAtController } from "./utils/LookAtController.js";
 
 // renderer
 const renderer = new THREE.WebGLRenderer();
@@ -50,6 +50,7 @@ let currentMixer = undefined;
 let currentAction = undefined;
 let armSpaceController = undefined;
 let expressionController = undefined;
+let lookAtController = undefined;
 
 // Animation management
 const animations = new Map(); // Store loaded animation clips
@@ -167,18 +168,16 @@ function loadVRM(modelUrl) {
       // create AnimationMixer for VRM
       currentMixer = new THREE.AnimationMixer(currentVrm.scene);
 
-      // Create arm space controller AFTER currentVrm is set
-      armSpaceController = new ArmSpaceController(currentVrm);
-
       // Create expression controller
       expressionController = new ExpressionController(currentVrm);
-      console.log(
-        "Available expressions:",
-        expressionController.getAvailableExpressions()
-      );
 
       // Load all animations after VRM is ready
       await loadAllAnimations();
+
+      // Create arm space controller AFTER currentVrm is set
+      armSpaceController = new ArmSpaceController(currentVrm, 1.5);
+
+      lookAtController = new LookAtController(currentVrm, camera);
 
       // Disable frustum culling
       vrm.scene.traverse((obj) => {
@@ -193,12 +192,6 @@ function loadVRM(modelUrl) {
       VRMUtils.rotateVRM0(vrm);
 
       console.log(vrm);
-
-      //set default arm space
-      if (armSpaceController) {
-        armSpaceController.setArmSpace(1.5);
-        console.log("Arm space set to: 1.5 (default)");
-      }
     },
 
     // called while loading is progressing
@@ -243,6 +236,10 @@ function animate() {
       armSpaceController.update();
     }
 
+    if (lookAtController) {
+      lookAtController.update(deltaTime);
+    }
+
     // Update VRM (this applies IK and other systems)
     currentVrm.update(deltaTime);
   }
@@ -258,6 +255,12 @@ const gui = new GUI();
 const params = {
   timeScale: 1.0,
   armSpace: 1.5,
+  // Add these new parameters
+  lookAtEnabled: true,
+  eyeIntensity: 1.0,
+  headIntensity: 0.3,
+  lookAtSmoothing: 0.1,
+  lookAtVerticalOffset: 0,
 };
 
 gui.add(params, "timeScale", 0.0, 2.0, 0.001).onChange((value) => {
@@ -292,7 +295,7 @@ function setupAnimationControls() {
     );
   });
 
-  animFolder.open();
+  animFolder.close();
 }
 
 // GUI setup additions
@@ -325,7 +328,7 @@ function setupExpressionControls() {
         });
       }
     });
-
+  blinkFolder.close();
   // Emotion controls
   const emotionFolder = gui.addFolder("Emotions");
   const emotions = ["happy", "angry", "sad", "relaxed", "surprised", "neutral"];
@@ -343,8 +346,48 @@ function setupExpressionControls() {
     );
   });
 
-  expressionFolder.open();
+  emotionFolder.close();
 }
 
 // Call this after loading animations
 setupExpressionControls();
+//gui.close();
+const lookAtFolder = gui.addFolder("Look At Camera");
+
+lookAtFolder
+  .add(params, "lookAtEnabled")
+  .name("Enabled")
+  .onChange((value) => {
+    if (lookAtController) {
+      lookAtController.setEnabled(value);
+    }
+  });
+
+lookAtFolder
+  .add(params, "eyeIntensity", 0.0, 1.0, 0.01)
+  .name("Eye Intensity")
+  .onChange((value) => {
+    if (lookAtController) {
+      lookAtController.setEyeIntensity(value);
+    }
+  });
+
+lookAtFolder
+  .add(params, "headIntensity", 0.0, 1.0, 0.01)
+  .name("Head Intensity")
+  .onChange((value) => {
+    if (lookAtController) {
+      lookAtController.setHeadIntensity(value);
+    }
+  });
+
+lookAtFolder
+  .add(params, "lookAtSmoothing", 0.0, 1.0, 0.01)
+  .name("Smoothing")
+  .onChange((value) => {
+    if (lookAtController) {
+      lookAtController.setSmoothing(value);
+    }
+  });
+
+lookAtFolder.open();
