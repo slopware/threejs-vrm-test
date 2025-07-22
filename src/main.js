@@ -214,6 +214,12 @@ createEnvironment(scene);
 // animate
 const clock = new THREE.Clock();
 
+requestAnimationFrame(() => {
+  if (lookAtController) {
+    lookAtController.storeDefaultState();
+  }
+});
+
 function animate() {
   requestAnimationFrame(animate);
 
@@ -390,4 +396,4 @@ lookAtFolder
     }
   });
 
-lookAtFolder.open();
+lookAtFolder.close();
