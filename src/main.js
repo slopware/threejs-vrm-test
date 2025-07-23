@@ -7,7 +7,8 @@ import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { loadMixamoAnimation } from "./utils/loadMixamoAnimation.js";
 
 import { ExpressionController } from "./ExpressionController.js";
-import { createEnvironment } from "./environment.js";
+// IMPORTANT: Import the new environment tools
+import { loadEnvironment, availableEnvironments } from "./environment.js";
 import { ArmSpaceController } from "./ArmSpaceController.js";
 import { LookAtController } from "./utils/LookAtController.js";
 import { setupMainGUI } from "./gui.js";
@@ -38,7 +39,7 @@ const scene = new THREE.Scene();
 
 // light
 const light = new THREE.DirectionalLight(0xffffff, Math.PI);
-light.position.set(1.0, 1.0, 1.0).normalize();
+light.position.set(1.0, 1.0, 0.5).normalize();
 scene.add(light);
 
 const defaultModelUrl = "/miku.vrm";
@@ -50,7 +51,7 @@ let currentAction = undefined;
 let armSpaceController = undefined;
 let expressionController = undefined;
 let lookAtController = undefined;
-let gui = undefined; // This will hold our GUI instance
+let gui = undefined;
 
 // --- Parameters ---
 const params = {
@@ -61,11 +62,12 @@ const params = {
   headIntensity: 0.3,
   lookAtSmoothing: 0.1,
   lookAtVerticalOffset: 0,
+  // Add environment to params with a default value
+  environment: availableEnvironments[0],
 };
 
-
 // --- Animation Management ---
-const animations = new Map(); // Store loaded animation clips
+const animations = new Map();
 let isLoadingAnimations = false;
 const animationFiles = {
   idle: "/animations/idleFemale.fbx",
@@ -79,37 +81,23 @@ const animationFiles = {
   looking: "/animations/idle-looking.fbx",
 };
 
-// Load all animations at startup
 async function loadAllAnimations() {
   if (!currentVrm || isLoadingAnimations) return;
-
   isLoadingAnimations = true;
-  console.log("Loading all animations...");
-
   for (const [name, url] of Object.entries(animationFiles)) {
     try {
       const clip = await loadMixamoAnimation(url, currentVrm);
       animations.set(name, clip);
-      console.log(`Loaded animation: ${name}`);
     } catch (error) {
       console.error(`Failed to load animation ${name}:`, error);
     }
   }
-
   isLoadingAnimations = false;
-  console.log("All animations loaded!");
-
-  // Play default animation
   playAnimation("idle", true);
 }
 
-// Play a specific animation
 function playAnimation(animationName, loop = false, fadeTime = 0.5) {
-  if (!currentMixer || !animations.has(animationName)) {
-    console.warn(`Animation "${animationName}" not found or mixer not ready`);
-    return;
-  }
-
+  if (!currentMixer || !animations.has(animationName)) return;
   const clip = animations.get(animationName);
   const newAction = currentMixer.clipAction(clip);
   newAction.loop = loop ? THREE.LoopRepeat : THREE.LoopOnce;
@@ -121,7 +109,6 @@ function playAnimation(animationName, loop = false, fadeTime = 0.5) {
   } else {
     newAction.reset().play();
   }
-
   currentAction = newAction;
   return newAction;
 }
@@ -129,17 +116,14 @@ function playAnimation(animationName, loop = false, fadeTime = 0.5) {
 function loadVRM(modelUrl) {
   const loader = new GLTFLoader();
   loader.crossOrigin = "anonymous";
-
-  loader.register((parser) => {
-    return new VRMLoaderPlugin(parser, { autoUpdateHumanBones: true });
-  });
+  loader.register(
+    (parser) => new VRMLoaderPlugin(parser, { autoUpdateHumanBones: true })
+  );
 
   loader.load(
     modelUrl,
     async (gltf) => {
       const vrm = gltf.userData.vrm;
-
-      // --- Cleanup and Setup ---
       VRMUtils.removeUnnecessaryVertices(gltf.scene);
       VRMUtils.combineSkeletons(gltf.scene);
       VRMUtils.combineMorphs(vrm);
@@ -148,24 +132,26 @@ function loadVRM(modelUrl) {
         scene.remove(currentVrm.scene);
         VRMUtils.deepDispose(currentVrm.scene);
       }
-      
       if (gui) {
         gui.destroy();
       }
 
-      // --- Assign VRM and add to Scene ---
       currentVrm = vrm;
       scene.add(vrm.scene);
-      vrm.scene.traverse((obj) => { obj.frustumCulled = false; });
+      vrm.scene.traverse((obj) => {
+        obj.frustumCulled = false;
+      });
       VRMUtils.rotateVRM0(vrm);
 
-      // --- Initialize ALL controllers ---
       currentMixer = new THREE.AnimationMixer(currentVrm.scene);
       expressionController = new ExpressionController(currentVrm);
       armSpaceController = new ArmSpaceController(currentVrm, params.armSpace);
       lookAtController = new LookAtController(currentVrm, camera);
 
-      // --- Create GUI AFTER controllers exist ---
+      // --- Load the default environment ---
+      loadEnvironment(params.environment, scene);
+
+      // --- Create GUI with new environment controls ---
       gui = setupMainGUI(
         params,
         currentMixer,
@@ -173,23 +159,16 @@ function loadVRM(modelUrl) {
         expressionController,
         lookAtController,
         animationFiles,
-        playAnimation
+        playAnimation,
+        availableEnvironments,
+        (envName) => loadEnvironment(envName, scene) // Pass the loader function
       );
-      
-      // --- Load animations and start ---
+
       await loadAllAnimations();
 
-      // --- *** FIX IS HERE *** ---
-      // Enable controllers that need a "settled" state after a brief delay.
-      // This allows the first animation frame to render, preventing any visual "snapping".
       if (armSpaceController) {
-        setTimeout(() => {
-          armSpaceController.setEnabled(true);
-          console.log('ArmSpaceController is now active.');
-        }, 100); // 100ms is a safe delay to ensure the first pose is applied.
+        setTimeout(() => armSpaceController.setEnabled(true), 100);
       }
-
-      console.log("Loaded VRM:", vrm);
     },
     (progress) =>
       console.log(
@@ -202,11 +181,8 @@ function loadVRM(modelUrl) {
 }
 
 loadVRM(defaultModelUrl);
-createEnvironment(scene);
 
-// animate
 const clock = new THREE.Clock();
-
 function animate() {
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
@@ -215,22 +191,13 @@ function animate() {
   if (currentMixer) {
     currentMixer.update(deltaTime);
   }
-
   if (currentVrm) {
-    if (expressionController) {
+    if (expressionController)
       expressionController.update(currentTime, deltaTime);
-    }
-    // This will now only work if armSpaceController.enabled is true
-    if (armSpaceController) {
-      armSpaceController.update();
-    }
-    if (lookAtController) {
-      lookAtController.update(deltaTime);
-    }
+    if (armSpaceController) armSpaceController.update();
+    if (lookAtController) lookAtController.update(deltaTime);
     currentVrm.update(deltaTime);
   }
-
   renderer.render(scene, camera);
 }
-
 animate();

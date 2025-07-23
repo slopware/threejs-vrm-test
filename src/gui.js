@@ -2,7 +2,6 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 
 /**
  * Creates and configures the main application GUI.
- * This function should be called only after the VRM and all its controllers are initialized.
  * @param {object} params - The object holding controllable parameters.
  * @param {THREE.AnimationMixer} mixer - The animation mixer.
  * @param {ArmSpaceController} armSpaceController - The controller for arm spacing.
@@ -10,6 +9,8 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
  * @param {LookAtController} lookAtController - The controller for camera look-at behavior.
  * @param {object} animationFiles - An object mapping animation names to their file paths.
  * @param {function} playAnimationCallback - A callback function to play an animation by name.
+ * @param {string[]} availableEnvironments - An array of environment names.
+ * @param {function} loadEnvironmentCallback - A callback to load an environment by name.
  * @returns {GUI} The configured lil-gui instance.
  */
 export function setupMainGUI(
@@ -19,9 +20,21 @@ export function setupMainGUI(
   expressionController,
   lookAtController,
   animationFiles,
-  playAnimationCallback
+  playAnimationCallback,
+  availableEnvironments,
+  loadEnvironmentCallback
 ) {
   const gui = new GUI();
+
+  // --- Environment Folder ---
+  const envFolder = gui.addFolder("Environment");
+  envFolder
+    .add(params, 'environment', availableEnvironments)
+    .name('Select')
+    .onChange((value) => {
+      loadEnvironmentCallback(value);
+    });
+  envFolder.close();
 
   // --- General Controls ---
   gui
@@ -49,8 +62,6 @@ export function setupMainGUI(
 
   // --- Expressions Folder ---
   const expressionFolder = gui.addFolder("Expressions");
-
-  // Blinking Sub-folder
   const blinkFolder = expressionFolder.addFolder("Blinking");
   const blinkConfig = { blinkInterval: 10.0, doubleBlinkChance: 0.1 };
   blinkFolder.add(blinkConfig, "blinkInterval", 1, 30).onChange((value) => {
@@ -64,8 +75,6 @@ export function setupMainGUI(
     }
   });
   blinkFolder.close();
-
-  // Emotions Sub-folder
   const emotionFolder = expressionFolder.addFolder("Emotions");
   const emotions = ["happy", "angry", "sad", "relaxed", "surprised", "neutral"];
   emotions.forEach((emotion) => {
