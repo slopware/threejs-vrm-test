@@ -70,13 +70,12 @@ const params = {
 // This can stay here as a central configuration object.
 const animationFiles = {
   idle: "/animations/idleFemale.fbx",
-  idle2: "/animations/idle.fbx",
   idle_happy: "/animations/idle-happy.fbx",
   idle_happy2: "/animations/idle-happy2.fbx",
+  idle_bored: "/animations/bored.fbx",
   acknowledging: "/animations/acknowledging.fbx",
   sad: "/animations/sad.fbx",
   bow: "/animations/bow.fbx",
-  bored: "/animations/bored.fbx",
   looking: "/animations/idle-looking.fbx",
 };
 
