@@ -22,7 +22,13 @@ export class AnimationController {
     this.idleLoopActive = false;
     this.idleTimeout = null;
     // Define which animations are part of the idle cycle
-    this.idleAnimations = ['idle', 'idle_happy', 'idle_happy2', 'bored', 'looking'];
+    this.idleAnimations = [
+      "idle",
+      "idle_happy",
+      "idle_happy2",
+      "bored",
+      "looking",
+    ];
   }
 
   /**
@@ -38,11 +44,15 @@ export class AnimationController {
         this.animations.set(name, clip);
         console.log(`AnimationController: Loaded animation "${name}"`);
       } catch (error) {
-        console.error(`AnimationController: Failed to load animation ${name}:`, error);
+        console.error(
+          `AnimationController: Failed to load animation ${name}:`,
+          error
+        );
       }
     }
     console.log("AnimationController: All animations loaded!");
-    this.playAnimation("idle", true, 0); // Start with a default idle
+    //this.playAnimation("idle", true, 0); // Start with a default idle
+    this.startIdleLoop();
   }
 
   /**
@@ -58,10 +68,12 @@ export class AnimationController {
     }
 
     if (!this.animations.has(animationName)) {
-      console.warn(`AnimationController: Animation "${animationName}" not found.`);
+      console.warn(
+        `AnimationController: Animation "${animationName}" not found.`
+      );
       return;
     }
-    
+
     this.currentActionName = animationName;
 
     const clip = this.animations.get(animationName);
@@ -100,7 +112,7 @@ export class AnimationController {
       this.idleTimeout = null;
     }
     console.log("Stopping idle loop. Returning to default idle.");
-    this.playAnimation('idle', true);
+    this.playAnimation("idle", true);
   }
 
   /**
@@ -112,16 +124,19 @@ export class AnimationController {
 
     // Find available idle animations, excluding the current one to avoid repeats
     const possibleAnims = this.idleAnimations.filter(
-      name => name !== this.currentActionName && this.animations.has(name)
+      (name) => name !== this.currentActionName && this.animations.has(name)
     );
 
     // If all have been filtered (e.g., only one idle anim), use the full list
-    const animPool = possibleAnims.length > 0 ? possibleAnims : this.idleAnimations.filter(name => this.animations.has(name));
-    
+    const animPool =
+      possibleAnims.length > 0
+        ? possibleAnims
+        : this.idleAnimations.filter((name) => this.animations.has(name));
+
     if (animPool.length === 0) {
-        console.warn("No idle animations available for loop.");
-        this.stopIdleLoop();
-        return;
+      console.warn("No idle animations available for loop.");
+      this.stopIdleLoop();
+      return;
     }
 
     const nextAnimName = animPool[Math.floor(Math.random() * animPool.length)];
@@ -131,7 +146,11 @@ export class AnimationController {
 
     // Set a random timeout to transition to the next animation
     const randomInterval = Math.random() * (30000 - 5000) + 5000; // 5 to 30 seconds
-    console.log(`Idle loop: playing "${nextAnimName}" for ${Math.round(randomInterval / 1000)}s`);
+    console.log(
+      `Idle loop: playing "${nextAnimName}" for ${Math.round(
+        randomInterval / 1000
+      )}s`
+    );
 
     this.idleTimeout = setTimeout(() => this.runIdleLoop(), randomInterval);
   }

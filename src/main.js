@@ -9,7 +9,7 @@ import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { AnimationController } from "./AnimationController.js";
 import { ExpressionController } from "./ExpressionController.js";
 import { ArmSpaceController } from "./ArmSpaceController.js";
-import { LookAtController } from "./utils/LookAtController.js";
+import { LookAtController } from "./LookAtController.js";
 
 import { loadEnvironment, availableEnvironments } from "./environment.js";
 import { setupMainGUI } from "./gui.js";
@@ -39,9 +39,13 @@ controls.update();
 const scene = new THREE.Scene();
 
 // light
-const light = new THREE.DirectionalLight(0xffffff, Math.PI);
+const light = new THREE.DirectionalLight(0xffffff, 2.5);
 light.position.set(1.0, 1.0, 1.0).normalize();
 scene.add(light);
+
+const light2 = new THREE.PointLight(0xffffff, 1.5, 100);
+light2.position.set(-1.0, 1.6, 0.0);
+scene.add(light2);
 
 const defaultModelUrl = "/miku.vrm";
 
