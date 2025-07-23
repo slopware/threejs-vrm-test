@@ -59,11 +59,29 @@ let isLoadingAnimations = false;
 // Define your animation files
 const animationFiles = {
   idle: "/animations/idleFemale.fbx",
+  idle2: "/animations/idle.fbx",
+  idle_happy: "/animations/idle-happy.fbx",
+  idle_happy2: "/animations/idle-happy2.fbx",
+  acknowledging: "/animations/acknowledging.fbx",
   sad: "/animations/sad.fbx",
-  happy: "/animations/idle-happy.fbx",
   bow: "/animations/bow.fbx",
   bored: "/animations/bored.fbx",
-  angry: "/animations/angry.fbx",
+  looking: "/animations/idle-looking.fbx",
+  // angry: "/animations/angry.fbx",
+  // excited: "/animations/excited.fbx",
+  // excited2: "/animations/excited2.fbx",
+  // jump_for_joy: "/animations/Joyful Jump.fbx",
+  // spin_combo: "/animations/Northern Soul Spin Combo.fbx",
+  // spin: "/animations/Northern Soul Spin.fbx",
+  // praying: "/animations/praying.fbx",
+  // punching_bag: "/animations/Punching Bag.fbx",
+  // square_up: "/animations/square up.fbx",
+  // talking: "/animations/talking.fbx",
+  // telling_secret: "/animations/talkingTellingSecret.fbx",
+  // yelling: "/animations/talkingYelling.fbx",
+  // taunt: "/animations/Taunt.fbx",
+  // threaten: "/animations/throat.fbx",
+  // victory: "/animations/victory.fbx",
 };
 
 // Load all animations at startup
