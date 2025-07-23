@@ -4,13 +4,14 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
-import { loadMixamoAnimation } from "./utils/loadMixamoAnimation.js";
 
+// Import all the controllers
+import { AnimationController } from "./AnimationController.js";
 import { ExpressionController } from "./ExpressionController.js";
-// IMPORTANT: Import the new environment tools
-import { loadEnvironment, availableEnvironments } from "./environment.js";
 import { ArmSpaceController } from "./ArmSpaceController.js";
 import { LookAtController } from "./utils/LookAtController.js";
+
+import { loadEnvironment, availableEnvironments } from "./environment.js";
 import { setupMainGUI } from "./gui.js";
 
 // renderer
@@ -39,15 +40,15 @@ const scene = new THREE.Scene();
 
 // light
 const light = new THREE.DirectionalLight(0xffffff, Math.PI);
-light.position.set(1.0, 1.0, 0.5).normalize();
+light.position.set(1.0, 1.0, 1.0).normalize();
 scene.add(light);
 
 const defaultModelUrl = "/miku.vrm";
 
 // --- State and Controllers ---
+// The main file now just holds references to the VRM and the controllers.
 let currentVrm = undefined;
-let currentMixer = undefined;
-let currentAction = undefined;
+let animationController = undefined;
 let armSpaceController = undefined;
 let expressionController = undefined;
 let lookAtController = undefined;
@@ -62,13 +63,11 @@ const params = {
   headIntensity: 0.3,
   lookAtSmoothing: 0.1,
   lookAtVerticalOffset: 0,
-  // Add environment to params with a default value
   environment: availableEnvironments[0],
 };
 
-// --- Animation Management ---
-const animations = new Map();
-let isLoadingAnimations = false;
+// --- Animation Files Configuration ---
+// This can stay here as a central configuration object.
 const animationFiles = {
   idle: "/animations/idleFemale.fbx",
   idle2: "/animations/idle.fbx",
@@ -81,37 +80,7 @@ const animationFiles = {
   looking: "/animations/idle-looking.fbx",
 };
 
-async function loadAllAnimations() {
-  if (!currentVrm || isLoadingAnimations) return;
-  isLoadingAnimations = true;
-  for (const [name, url] of Object.entries(animationFiles)) {
-    try {
-      const clip = await loadMixamoAnimation(url, currentVrm);
-      animations.set(name, clip);
-    } catch (error) {
-      console.error(`Failed to load animation ${name}:`, error);
-    }
-  }
-  isLoadingAnimations = false;
-  playAnimation("idle", true);
-}
-
-function playAnimation(animationName, loop = false, fadeTime = 0.5) {
-  if (!currentMixer || !animations.has(animationName)) return;
-  const clip = animations.get(animationName);
-  const newAction = currentMixer.clipAction(clip);
-  newAction.loop = loop ? THREE.LoopRepeat : THREE.LoopOnce;
-  newAction.clampWhenFinished = !loop;
-
-  if (currentAction && currentAction !== newAction) {
-    newAction.reset().play();
-    currentAction.crossFadeTo(newAction, fadeTime);
-  } else {
-    newAction.reset().play();
-  }
-  currentAction = newAction;
-  return newAction;
-}
+// The old animation functions (loadAllAnimations, playAnimation) have been removed.
 
 function loadVRM(modelUrl) {
   const loader = new GLTFLoader();
@@ -143,7 +112,8 @@ function loadVRM(modelUrl) {
       });
       VRMUtils.rotateVRM0(vrm);
 
-      currentMixer = new THREE.AnimationMixer(currentVrm.scene);
+      // --- Initialize ALL controllers ---
+      animationController = new AnimationController(currentVrm, animationFiles);
       expressionController = new ExpressionController(currentVrm);
       armSpaceController = new ArmSpaceController(currentVrm, params.armSpace);
       lookAtController = new LookAtController(currentVrm, camera);
@@ -151,22 +121,23 @@ function loadVRM(modelUrl) {
       // --- Load the default environment ---
       loadEnvironment(params.environment, scene);
 
-      // --- Create GUI with new environment controls ---
+      // --- Create GUI, passing it the new animationController ---
       gui = setupMainGUI(
         params,
-        currentMixer,
+        animationController, // Pass the new controller
         armSpaceController,
         expressionController,
         lookAtController,
-        animationFiles,
-        playAnimation,
         availableEnvironments,
-        (envName) => loadEnvironment(envName, scene) // Pass the loader function
+        (envName) => loadEnvironment(envName, scene)
       );
 
-      await loadAllAnimations();
+      // --- Load animations using the controller ---
+      // We await this to ensure animations are ready before enabling other controllers.
+      await animationController.loadAllAnimations();
 
       if (armSpaceController) {
+        // This delay is still useful to prevent the arm-snap on the first frame.
         setTimeout(() => armSpaceController.setEnabled(true), 100);
       }
     },
@@ -188,9 +159,9 @@ function animate() {
   const deltaTime = clock.getDelta();
   const currentTime = clock.elapsedTime;
 
-  if (currentMixer) {
-    currentMixer.update(deltaTime);
-  }
+  // Update all controllers that need it
+  if (animationController) animationController.update(deltaTime);
+
   if (currentVrm) {
     if (expressionController)
       expressionController.update(currentTime, deltaTime);

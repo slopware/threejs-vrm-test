@@ -3,24 +3,20 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 /**
  * Creates and configures the main application GUI.
  * @param {object} params - The object holding controllable parameters.
- * @param {THREE.AnimationMixer} mixer - The animation mixer.
+ * @param {AnimationController} animationController - The new controller for animations.
  * @param {ArmSpaceController} armSpaceController - The controller for arm spacing.
  * @param {ExpressionController} expressionController - The controller for facial expressions.
  * @param {LookAtController} lookAtController - The controller for camera look-at behavior.
- * @param {object} animationFiles - An object mapping animation names to their file paths.
- * @param {function} playAnimationCallback - A callback function to play an animation by name.
  * @param {string[]} availableEnvironments - An array of environment names.
  * @param {function} loadEnvironmentCallback - A callback to load an environment by name.
  * @returns {GUI} The configured lil-gui instance.
  */
 export function setupMainGUI(
   params,
-  mixer,
+  animationController,
   armSpaceController,
   expressionController,
   lookAtController,
-  animationFiles,
-  playAnimationCallback,
   availableEnvironments,
   loadEnvironmentCallback
 ) {
@@ -41,7 +37,8 @@ export function setupMainGUI(
     .add(params, "timeScale", 0.0, 2.0, 0.001)
     .name("Time Scale")
     .onChange((value) => {
-      if (mixer) mixer.timeScale = value;
+      // The mixer is now inside the animationController
+      if (animationController) animationController.mixer.timeScale = value;
     });
 
   gui
@@ -55,8 +52,9 @@ export function setupMainGUI(
 
   // --- Animations Folder ---
   const animFolder = gui.addFolder("Animations");
-  Object.keys(animationFiles).forEach((animName) => {
-    animFolder.add({ [animName]: () => playAnimationCallback(animName, true) }, animName);
+  // Get animation names directly from the controller's config
+  Object.keys(animationController.animationFiles).forEach((animName) => {
+    animFolder.add({ [animName]: () => animationController.playAnimation(animName, true) }, animName);
   });
   animFolder.close();
 
