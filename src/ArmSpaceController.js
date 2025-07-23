@@ -4,6 +4,16 @@ export class ArmSpaceController {
   constructor(vrm, defaultArmSpace = 0) {
     this.vrm = vrm;
     this.armSpaceOffset = defaultArmSpace;
+    // Start disabled to prevent running before the first animation frame
+    this.enabled = false;
+  }
+
+  /**
+   * Enables or disables the controller's update logic.
+   * @param {boolean} isEnabled
+   */
+  setEnabled(isEnabled) {
+    this.enabled = isEnabled;
   }
 
   setArmSpace(value) {
@@ -11,16 +21,16 @@ export class ArmSpaceController {
   }
 
   update() {
-    if (!this.vrm || !this.vrm.humanoid) return;
+    // Guard clause: only run the logic if the controller is enabled
+    if (!this.enabled || !this.vrm || !this.vrm.humanoid) return;
 
     // Get the arm bones
     const leftArm = this.vrm.humanoid.getNormalizedBoneNode("leftUpperArm");
     const rightArm = this.vrm.humanoid.getNormalizedBoneNode("rightUpperArm");
 
     if (leftArm && rightArm) {
-      // Scale down the effect and invert the range
-      // Now -1 = arms close to body, 0 = normal, 1 = arms slightly out
-      const scaledOffset = this.armSpaceOffset * 0.15; // Scale down significantly
+      // Scale down the effect
+      const scaledOffset = this.armSpaceOffset * 0.15;
 
       // Create rotation quaternions for the adjustment
       const leftAdjustment = new THREE.Quaternion().setFromEuler(
@@ -30,7 +40,7 @@ export class ArmSpaceController {
         new THREE.Euler(0, 0, scaledOffset)
       );
 
-      // Apply as additional rotation on top of animation
+      // Apply as an additional rotation on top of the current animation pose
       leftArm.quaternion.multiply(leftAdjustment);
       rightArm.quaternion.multiply(rightAdjustment);
     }
