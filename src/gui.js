@@ -18,10 +18,20 @@ export function setupMainGUI(
   expressionController,
   lookAtController,
   availableEnvironments,
-  loadEnvironmentCallback
+  availableVRMs,
+  loadEnvironmentCallback,
+  loadVRM
 ) {
   const gui = new GUI();
 
+  // vrm folder
+  const vrmFolder = gui.addFolder("Load VRM");
+  vrmFolder
+    .add(params, "loadedVRM", availableVRMs)
+    .name("Select VRM")
+    .onChange((selectedVRM) => {
+      loadVRM(selectedVRM);
+    });
   // --- Environment Folder ---
   const envFolder = gui.addFolder("Environment");
   envFolder

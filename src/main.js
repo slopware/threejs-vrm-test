@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
+import { TransformControls } from "three/examples/jsm/Addons.js";
 
 // Import all the controllers
 import { AnimationController } from "./AnimationController.js";
@@ -38,6 +39,15 @@ controls.update();
 // scene
 const scene = new THREE.Scene();
 
+//arrow helper
+const dir = new THREE.Vector3(1, 0, 0);
+dir.normalize();
+const origin = new THREE.Vector3(0, 2, 0);
+const length = 1;
+const hex = 0xffff00;
+const arrowHelper = new THREE.ArrowHelper(dir, origin, length, hex);
+scene.add(arrowHelper);
+
 // light
 const light = new THREE.DirectionalLight(0xffffff, 2.5);
 light.position.set(1.0, 1.0, 1.0).normalize();
@@ -48,6 +58,7 @@ light2.position.set(-1.0, 1.6, 0.0);
 scene.add(light2);
 
 const defaultModelUrl = "/miku.vrm";
+const availableVRMs = { miku: "/miku.vrm", perula: "./perula.vrm" };
 
 // --- State and Controllers ---
 // The main file now just holds references to the VRM and the controllers.
@@ -68,6 +79,7 @@ const params = {
   lookAtSmoothing: 0.1,
   lookAtVerticalOffset: 0,
   environment: availableEnvironments[0],
+  loadedVRM: "miku",
 };
 
 // --- Animation Files Configuration ---
@@ -82,8 +94,6 @@ const animationFiles = {
   bow: "/animations/bow.fbx",
   looking: "/animations/idle-looking.fbx",
 };
-
-// The old animation functions (loadAllAnimations, playAnimation) have been removed.
 
 function loadVRM(modelUrl) {
   const loader = new GLTFLoader();
@@ -110,6 +120,7 @@ function loadVRM(modelUrl) {
 
       currentVrm = vrm;
       scene.add(vrm.scene);
+
       vrm.scene.traverse((obj) => {
         obj.frustumCulled = false;
       });
@@ -132,7 +143,9 @@ function loadVRM(modelUrl) {
         expressionController,
         lookAtController,
         availableEnvironments,
-        (envName) => loadEnvironment(envName, scene)
+        availableVRMs,
+        (envName) => loadEnvironment(envName, scene),
+        loadVRM
       );
 
       // --- Load animations using the controller ---
@@ -157,6 +170,7 @@ function loadVRM(modelUrl) {
 loadVRM(defaultModelUrl);
 
 const clock = new THREE.Clock();
+
 function animate() {
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
