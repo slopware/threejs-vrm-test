@@ -1,9 +1,14 @@
 import "./style.css";
-import * as THREE from "three";
-
+import * as THREE from "three/webgpu";
+//import { WebGPURenderer } from "three/src/Three.WebGPU.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
+import {
+  VRMLoaderPlugin,
+  VRMUtils,
+  MToonMaterialLoaderPlugin,
+} from "@pixiv/three-vrm";
+import { MToonNodeMaterial } from "@pixiv/three-vrm/nodes";
 import { TransformControls } from "three/examples/jsm/Addons.js";
 
 // Import all the controllers
@@ -16,7 +21,8 @@ import { loadEnvironment, availableEnvironments } from "./environment.js";
 import { setupMainGUI } from "./gui.js";
 
 // renderer
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGPURenderer();
+await renderer.init();
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
@@ -53,9 +59,9 @@ const light = new THREE.DirectionalLight(0xffffff, 2.5);
 light.position.set(1.0, 1.0, 1.0).normalize();
 scene.add(light);
 
-const light2 = new THREE.PointLight(0xffffff, 1.5, 100);
-light2.position.set(-1.0, 1.6, 0.0);
-scene.add(light2);
+// const light2 = new THREE.PointLight(0xffffff, 1.5, 100);
+// light2.position.set(-1.0, 1.6, 0.0);
+// scene.add(light2);
 
 const defaultModelUrl = "/miku.vrm";
 const availableVRMs = { miku: "/miku.vrm", perula: "./perula.vrm" };
@@ -98,9 +104,18 @@ const animationFiles = {
 function loadVRM(modelUrl) {
   const loader = new GLTFLoader();
   loader.crossOrigin = "anonymous";
-  loader.register(
-    (parser) => new VRMLoaderPlugin(parser, { autoUpdateHumanBones: true })
-  );
+
+  loader.register((parser) => {
+    const mtoonMaterialPlugin = new MToonMaterialLoaderPlugin(parser, {
+      materialType: MToonNodeMaterial,
+    });
+
+    return new VRMLoaderPlugin(parser, {
+      mtoonMaterialPlugin,
+      autoUpdateHumanBones: true,
+    });
+  });
+
   return new Promise((resolve, reject) => {
     loader.load(
       modelUrl,
@@ -141,6 +156,35 @@ function loadVRM(modelUrl) {
 async function init() {
   currentVrm = await loadVRM(defaultModelUrl);
   //scene.add(currentVrm.scene);
+
+  // --- FIX FOR BLACK OUTLINES ---
+  // currentVrm.scene.traverse((object) => {
+  //   // We are only interested in meshes with materials
+  //   if (!object.isMesh) {
+  //     return;
+  //   }
+
+  //   // MToonNodeMaterial is the WebGPU-compatible material
+  //   if (object.material.isMToonNodeMaterial) {
+  //     const material = object.material;
+
+  //     // --- Fix for weird outlines on transparent materials ---
+
+  //     // 1. Use alphaTest for a sharp cutout on transparent materials.
+  //     // This prevents the outline from blending with soft/fuzzy edges.
+  //     if (material.transparent) {
+  //       material.alphaTest = 0.9; // A value of 0.5 is a standard starting point
+  //     }
+
+  //     // 2. Adjust the render order. This is crucial.
+  //     // We tell the renderer to draw transparent objects later. This gives
+  //     // the outline a solid object to be drawn against.
+  //     if (material.transparent) {
+  //       object.renderOrder = 0; // Render after the default (0)
+  //     }
+  //   }
+  // });
+  // --- END OF FIX ---
 
   // --- Initialize ALL controllers ---
   animationController = new AnimationController(currentVrm, animationFiles);
