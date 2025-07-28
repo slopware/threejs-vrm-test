@@ -101,73 +101,79 @@ function loadVRM(modelUrl) {
   loader.register(
     (parser) => new VRMLoaderPlugin(parser, { autoUpdateHumanBones: true })
   );
+  return new Promise((resolve, reject) => {
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        const vrm = gltf.userData.vrm;
+        VRMUtils.removeUnnecessaryVertices(gltf.scene);
+        VRMUtils.combineSkeletons(gltf.scene);
+        VRMUtils.combineMorphs(vrm);
 
-  loader.load(
-    modelUrl,
-    async (gltf) => {
-      const vrm = gltf.userData.vrm;
-      VRMUtils.removeUnnecessaryVertices(gltf.scene);
-      VRMUtils.combineSkeletons(gltf.scene);
-      VRMUtils.combineMorphs(vrm);
+        if (currentVrm) {
+          scene.remove(currentVrm.scene);
+          VRMUtils.deepDispose(currentVrm.scene);
+        }
+        if (gui) {
+          gui.destroy();
+        }
 
-      if (currentVrm) {
-        scene.remove(currentVrm.scene);
-        VRMUtils.deepDispose(currentVrm.scene);
-      }
-      if (gui) {
-        gui.destroy();
-      }
+        currentVrm = vrm;
+        scene.add(vrm.scene);
 
-      currentVrm = vrm;
-      scene.add(vrm.scene);
-
-      vrm.scene.traverse((obj) => {
-        obj.frustumCulled = false;
-      });
-      VRMUtils.rotateVRM0(vrm);
-
-      // --- Initialize ALL controllers ---
-      animationController = new AnimationController(currentVrm, animationFiles);
-      expressionController = new ExpressionController(currentVrm);
-      armSpaceController = new ArmSpaceController(currentVrm, params.armSpace);
-      lookAtController = new LookAtController(currentVrm, camera);
-
-      // --- Load the default environment ---
-      loadEnvironment(params.environment, scene);
-
-      // --- Create GUI, passing it the new animationController ---
-      gui = setupMainGUI(
-        params,
-        animationController, // Pass the new controller
-        armSpaceController,
-        expressionController,
-        lookAtController,
-        availableEnvironments,
-        availableVRMs,
-        (envName) => loadEnvironment(envName, scene),
-        loadVRM
-      );
-
-      // --- Load animations using the controller ---
-      // We await this to ensure animations are ready before enabling other controllers.
-      await animationController.loadAllAnimations();
-
-      if (armSpaceController) {
-        // This delay is still useful to prevent the arm-snap on the first frame.
-        setTimeout(() => armSpaceController.setEnabled(true), 100);
-      }
-    },
-    (progress) =>
-      console.log(
-        "Loading model...",
-        100.0 * (progress.loaded / progress.total),
-        "%"
-      ),
-    (error) => console.error(error)
-  );
+        vrm.scene.traverse((obj) => {
+          obj.frustumCulled = false;
+        });
+        VRMUtils.rotateVRM0(vrm);
+        resolve(vrm);
+      },
+      (progress) =>
+        console.log(
+          "Loading model...",
+          100.0 * (progress.loaded / progress.total),
+          "%"
+        ),
+      reject
+    );
+  });
 }
 
-loadVRM(defaultModelUrl);
+async function init() {
+  currentVrm = await loadVRM(defaultModelUrl);
+  //scene.add(currentVrm.scene);
+
+  // --- Initialize ALL controllers ---
+  animationController = new AnimationController(currentVrm, animationFiles);
+  expressionController = new ExpressionController(currentVrm);
+  armSpaceController = new ArmSpaceController(currentVrm, params.armSpace);
+  lookAtController = new LookAtController(currentVrm, camera);
+
+  // --- Load the default environment ---
+  loadEnvironment(params.environment, scene);
+
+  // --- Create GUI, passing it the new animationController ---
+  gui = setupMainGUI(
+    params,
+    animationController, // Pass the new controller
+    armSpaceController,
+    expressionController,
+    lookAtController,
+    availableEnvironments,
+    availableVRMs,
+    (envName) => loadEnvironment(envName, scene),
+    loadAndReinitializeVRM
+  );
+
+  // --- Load animations using the controller ---
+  // We await this to ensure animations are ready before enabling other controllers.
+  await animationController.loadAllAnimations();
+
+  if (armSpaceController) {
+    // This delay is still useful to prevent the arm-snap on the first frame.
+    setTimeout(() => armSpaceController.setEnabled(true), 100);
+  }
+  animate();
+}
 
 const clock = new THREE.Clock();
 
@@ -188,4 +194,27 @@ function animate() {
   }
   renderer.render(scene, camera);
 }
-animate();
+
+async function loadAndReinitializeVRM(modelUrl) {
+  currentVrm = await loadVRM(modelUrl);
+
+  animationController = new AnimationController(currentVrm, animationFiles);
+  expressionController = new ExpressionController(currentVrm);
+  armSpaceController = new ArmSpaceController(currentVrm, params.armSpace);
+  lookAtController = new LookAtController(currentVrm, camera);
+  await animationController.loadAllAnimations();
+
+  gui = setupMainGUI(
+    params,
+    animationController,
+    armSpaceController,
+    expressionController,
+    lookAtController,
+    availableEnvironments,
+    availableVRMs,
+    (envName) => loadEnvironment(envName, scene),
+    loadAndReinitializeVRM // Pass itself for the next load
+  );
+}
+
+init();
