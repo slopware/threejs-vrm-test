@@ -155,36 +155,6 @@ function loadVRM(modelUrl) {
 
 async function init() {
   currentVrm = await loadVRM(defaultModelUrl);
-  //scene.add(currentVrm.scene);
-
-  // --- FIX FOR BLACK OUTLINES ---
-  // currentVrm.scene.traverse((object) => {
-  //   // We are only interested in meshes with materials
-  //   if (!object.isMesh) {
-  //     return;
-  //   }
-
-  //   // MToonNodeMaterial is the WebGPU-compatible material
-  //   if (object.material.isMToonNodeMaterial) {
-  //     const material = object.material;
-
-  //     // --- Fix for weird outlines on transparent materials ---
-
-  //     // 1. Use alphaTest for a sharp cutout on transparent materials.
-  //     // This prevents the outline from blending with soft/fuzzy edges.
-  //     if (material.transparent) {
-  //       material.alphaTest = 0.9; // A value of 0.5 is a standard starting point
-  //     }
-
-  //     // 2. Adjust the render order. This is crucial.
-  //     // We tell the renderer to draw transparent objects later. This gives
-  //     // the outline a solid object to be drawn against.
-  //     if (material.transparent) {
-  //       object.renderOrder = 0; // Render after the default (0)
-  //     }
-  //   }
-  // });
-  // --- END OF FIX ---
 
   // --- Initialize ALL controllers ---
   animationController = new AnimationController(currentVrm, animationFiles);
@@ -247,7 +217,11 @@ async function loadAndReinitializeVRM(modelUrl) {
   armSpaceController = new ArmSpaceController(currentVrm, params.armSpace);
   lookAtController = new LookAtController(currentVrm, camera);
   await animationController.loadAllAnimations();
-
+  if (armSpaceController) {
+    // This delay is still useful to prevent the arm-snap on the first frame.
+    setTimeout(() => armSpaceController.setEnabled(true), 100);
+  }
+  animate();
   gui = setupMainGUI(
     params,
     animationController,
